@@ -8,12 +8,12 @@
 // ║  Lấy từ: Firebase Console → Project Settings ║
 // ╚══════════════════════════════════════════════╝
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA_UNoN40JFb0fuFAqNtiLeMlKsbPVE3aI",
+  authDomain: "hvl-music-album.firebaseapp.com",
+  projectId: "hvl-music-album",
+  storageBucket: "hvl-music-album.firebasestorage.app",
+  messagingSenderId: "718882823785",
+  appId: "1:718882823785:web:e410326ab5664dc1daccf8"
 };
 
 class CloudSync {
