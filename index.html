@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#080808">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HVL Player">
+  <meta name="description" content="HVL Music Player - Nghe nhạc cá nhân với lời bài hát đồng bộ">
+
+  <title>HVL Music Player</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/player.css">
+  <link rel="stylesheet" href="css/library.css">
+  <link rel="stylesheet" href="css/lyrics.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===== Header ===== -->
+    <header class="app-header">
+      <div class="logo">HVL</div>
+      <div class="header-actions">
+        <button class="btn-icon" id="importBtn" aria-label="Thêm nhạc">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Main Content ===== -->
+    <main class="app-content">
+
+      <!-- Library Tab -->
+      <section id="tab-library" class="tab-page active">
+        <div class="search-bar">
+          <div class="search-input-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="search" class="search-input" id="searchInput" placeholder="Tìm bài hát..." autocomplete="off">
+          </div>
+        </div>
+        <div class="library-header">
+          <span class="song-count" id="songCount">0 bài hát</span>
+        </div>
+        <ul class="song-list" id="songList">
+          <!-- Songs rendered dynamically -->
+        </ul>
+      </section>
+
+      <!-- Now Playing Tab -->
+      <section id="tab-nowplaying" class="tab-page">
+        <div class="empty-state" id="nowPlayingEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM21 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+          </svg>
+          <h3>Chưa phát bài nào</h3>
+          <p>Chọn một bài hát từ thư viện để bắt đầu</p>
+        </div>
+      </section>
+
+      <!-- Playlists Tab -->
+      <section id="tab-playlists" class="tab-page">
+        <!-- Main playlist view -->
+        <div id="playlistMainView">
+          <div class="playlist-header">
+            <h2>Playlist</h2>
+          </div>
+          <div class="create-playlist-form">
+            <input type="text" class="input" id="createPlaylistInput" placeholder="Tên playlist mới...">
+            <button class="btn btn-primary" id="createPlaylistBtn">Tạo</button>
+          </div>
+          <ul class="playlist-list" id="playlistList">
+            <!-- Playlists rendered dynamically -->
+          </ul>
+        </div>
+
+        <!-- Playlist detail view -->
+        <div id="playlistDetail" class="hidden">
+          <div class="playlist-detail-header">
+            <button class="btn-back" id="playlistBackBtn" aria-label="Quay lại">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+            </button>
+            <h2 id="playlistDetailTitle">Playlist</h2>
+          </div>
+          <div class="playlist-detail-actions">
+            <button class="btn btn-primary" id="playlistPlayAllBtn">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Phát tất cả
+            </button>
+            <button class="btn btn-ghost" id="playlistDeleteBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+              Xóa playlist
+            </button>
+          </div>
+          <ul class="song-list" id="playlistDetailSongList">
+            <!-- Songs rendered dynamically -->
+          </ul>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ===== Mini Player ===== -->
+    <div class="mini-player" id="miniPlayer">
+      <div class="mini-player-progress">
+        <div class="mini-player-progress-fill" id="miniPlayerProgressFill"></div>
+      </div>
+      <div class="mini-player-art">
+        <img id="miniPlayerArtImage" src="" alt="" style="display:none">
+        <div class="art-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM21 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="mini-player-info">
+        <div class="mini-player-title" id="miniPlayerTitle">—</div>
+        <div class="mini-player-artist" id="miniPlayerArtist">—</div>
+      </div>
+      <div class="mini-player-controls">
+        <button class="btn-icon" id="miniPlayerPlayBtn" aria-label="Play/Pause">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="btn-icon" id="miniPlayerNextBtn" aria-label="Next">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zM19 5v14h-2V5h2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== Tab Bar ===== -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" data-tab="library" aria-label="Thư viện">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM21 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+        </svg>
+        <span>Thư viện</span>
+      </button>
+      <button class="tab-btn" data-tab="nowplaying" aria-label="Đang phát">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M10 8l6 4-6 4V8z"/>
+        </svg>
+        <span>Đang phát</span>
+      </button>
+      <button class="tab-btn" data-tab="playlists" aria-label="Playlist">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+        </svg>
+        <span>Playlist</span>
+      </button>
+    </nav>
+
+    <!-- ===== Full Screen Player ===== -->
+    <div class="full-player" id="fullPlayer">
+      <div class="full-player-bg">
+        <img class="full-player-bg-image" id="fullPlayerBgImage" src="" alt="" style="display:none">
+        <div class="full-player-bg-overlay"></div>
+      </div>
+      <div class="full-player-content">
+        <!-- Top bar -->
+        <div class="full-player-top">
+          <button class="btn-collapse" id="btnCollapsePlayer" aria-label="Thu nhỏ">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+          <span class="now-playing-label">Đang phát</span>
+          <button class="btn-icon" id="fullPlayerMoreBtn" aria-label="Thêm">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="6" r="1.5"/>
+              <circle cx="12" cy="12" r="1.5"/>
+              <circle cx="12" cy="18" r="1.5"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Album Art -->
+        <div class="full-player-art-container">
+          <div class="full-player-art paused" id="fullPlayerArt">
+            <img id="fullPlayerArtImage" src="" alt="Album Art" style="display:none">
+            <div class="art-placeholder-large">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM21 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+              </svg>
+              <span>HVL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Song Info -->
+        <div class="full-player-info">
+          <div class="full-player-title" id="fullPlayerTitle">—</div>
+          <div class="full-player-artist" id="fullPlayerArtist">—</div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="player-progress">
+          <div class="progress-bar-container" id="progressBarContainer">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="progressFill">
+                <div class="progress-bar-thumb" id="progressThumb"></div>
+              </div>
+            </div>
+          </div>
+          <div class="progress-time">
+            <span id="progressCurrent">0:00</span>
+            <span id="progressTotal">0:00</span>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="player-controls">
+          <button class="btn-icon" id="shuffleBtn" aria-label="Trộn bài">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+            </svg>
+          </button>
+          <button class="btn-icon" id="prevBtn" aria-label="Bài trước">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM5 19V5h2v14H5z"/></svg>
+          </button>
+          <button class="btn-icon btn-play-main" id="fullPlayerPlayBtn" aria-label="Play/Pause">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="btn-icon" id="nextBtn" aria-label="Bài tiếp">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zM19 5v14h-2V5h2z"/></svg>
+          </button>
+          <button class="btn-icon" id="repeatBtn" aria-label="Lặp lại">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 014-4h14"/>
+              <path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 01-4 4H3"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Extra controls -->
+        <div class="player-extras">
+          <div class="volume-control">
+            <button class="btn-icon" aria-label="Âm lượng">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+              </svg>
+            </button>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+          </div>
+          <button class="btn-icon" id="lyricsBtn" aria-label="Lời bài hát">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Lyrics View ===== -->
+    <div class="lyrics-view" id="lyricsView">
+      <div class="lyrics-bg">
+        <img class="lyrics-bg-image" id="lyricsBgImage" src="" alt="" style="display:none">
+        <div class="lyrics-bg-overlay"></div>
+      </div>
+      <div class="lyrics-content">
+        <div class="lyrics-top">
+          <button class="btn-close-lyrics" id="btnCloseLyrics" aria-label="Đóng lời bài hát">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+          <div class="lyrics-song-info">
+            <div class="lyrics-song-title" id="lyricsSongTitle">—</div>
+            <div class="lyrics-song-artist" id="lyricsSongArtist">—</div>
+          </div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="lyrics-scroll" id="lyricsScroll">
+          <div class="lyrics-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM21 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+            </svg>
+            <p>Chọn bài hát để xem lời</p>
+          </div>
+        </div>
+
+        <div class="lyrics-mini-controls">
+          <div class="lyrics-progress">
+            <div class="progress-bar-container" id="lyricsProgressContainer">
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="lyricsProgressFill">
+                  <div class="progress-bar-thumb"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="lyrics-controls-row">
+            <button class="btn-icon" id="lyricsPrevBtn" aria-label="Bài trước">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM5 19V5h2v14H5z"/></svg>
+            </button>
+            <button class="btn-icon btn-play-main" id="lyricsPlayBtn" aria-label="Play/Pause">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="btn-icon" id="lyricsNextBtn" aria-label="Bài tiếp">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zM19 5v14h-2V5h2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Import Modal ===== -->
+    <div class="modal-overlay" id="importModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Thêm nhạc</h2>
+          <button class="btn-icon" id="importClose" aria-label="Đóng">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="import-drop-zone" id="importDropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <path d="M17 8l-5-5-5 5"/>
+              <path d="M12 3v12"/>
+            </svg>
+            <h3>Kéo thả file nhạc vào đây</h3>
+            <p>Hỗ trợ: MP3, M4A, FLAC, WAV, OGG<br>Kèm file .LRC để có lời bài hát</p>
+          </div>
+          <div class="import-progress hidden" id="importProgress">
+            <div class="import-progress-bar">
+              <div class="import-progress-fill" id="importProgressFill"></div>
+            </div>
+            <div class="import-progress-text" id="importProgressText"></div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="fileInput" multiple accept=".mp3,.m4a,.aac,.wav,.ogg,.flac,.webm,.lrc" class="hidden">
+    </div>
+
+    <!-- ===== Context Menu ===== -->
+    <div class="context-menu-overlay" id="contextMenuOverlay">
+      <div class="context-menu">
+        <div class="context-menu-header">
+          <div class="song-title">Bài hát</div>
+        </div>
+        <button class="context-menu-item" id="ctxAddToPlaylist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Thêm vào playlist
+        </button>
+        <button class="context-menu-item" id="ctxAddLyrics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>
+          </svg>
+          Thêm lời bài hát (.lrc)
+        </button>
+        <button class="context-menu-item danger" id="ctxDelete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+          </svg>
+          Xóa bài hát
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== Toast Container ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/library.js"></script>
+  <script src="js/lyrics.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/playlist.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
