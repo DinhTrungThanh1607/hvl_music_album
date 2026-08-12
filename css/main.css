@@ -623,3 +623,111 @@ body {
     border-right: 1px solid var(--border-subtle);
   }
 }
+
+/* ---------- Cloud Sync UI ---------- */
+
+/* Sync button states */
+#syncBtn.syncing svg {
+  animation: spin 1.2s linear infinite;
+}
+
+#syncBtn.cloud-active {
+  color: var(--accent-light);
+}
+
+#syncBtn.cloud-disabled {
+  opacity: 0.3;
+}
+
+/* Cloud status badge on songs */
+.song-cloud-badge {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: var(--space-xs);
+}
+
+.song-cloud-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.song-cloud-badge.cloud-only {
+  color: #3498db;
+}
+
+.song-cloud-badge.synced {
+  color: #2ecc71;
+}
+
+.song-cloud-badge.local-only {
+  color: var(--text-muted);
+}
+
+.song-cloud-badge.downloading {
+  color: #f39c12;
+}
+
+.song-cloud-badge.downloading svg {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* Download overlay on song art */
+.song-download-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+.song-download-overlay .spinner {
+  width: 20px;
+  height: 20px;
+}
+
+/* Sync status bar */
+.sync-status-bar {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  z-index: 99;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-xs) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  transform: translateY(-100%);
+  transition: transform var(--transition-base);
+}
+
+.sync-status-bar.visible {
+  transform: translateY(0);
+}
+
+.sync-status-bar .spinner {
+  width: 14px;
+  height: 14px;
+}
+
+.sync-status-bar .sync-text {
+  flex: 1;
+}
+
+.sync-status-bar .sync-close {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+}
+

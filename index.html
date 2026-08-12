@@ -27,6 +27,11 @@
     <header class="app-header">
       <div class="logo">HVL</div>
       <div class="header-actions">
+        <button class="btn-icon" id="syncBtn" aria-label="Đồng bộ cloud" title="Đồng bộ cloud">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
+          </svg>
+        </button>
         <button class="btn-icon" id="importBtn" aria-label="Thêm nhạc">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 5v14M5 12h14"/>
@@ -384,11 +389,17 @@
 
   </div>
 
-  <!-- Scripts -->
+  <!-- Firebase SDK (compat mode for vanilla JS) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+
+  <!-- App Scripts -->
   <script src="js/library.js"></script>
   <script src="js/lyrics.js"></script>
   <script src="js/player.js"></script>
   <script src="js/playlist.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
 </body>

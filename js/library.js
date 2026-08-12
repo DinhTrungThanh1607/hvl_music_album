@@ -55,11 +55,13 @@ class MusicDB {
         artist: songData.artist || 'Unknown Artist',
         filename: songData.filename,
         duration: songData.duration || 0,
-        audioBlob: songData.audioBlob,
+        audioBlob: songData.audioBlob || null,
         audioType: songData.audioType,
         lyricsContent: songData.lyricsContent || null,
         coverBlob: songData.coverBlob || null,
         coverType: songData.coverType || null,
+        cloudId: songData.cloudId || null,
+        syncStatus: songData.syncStatus || 'local-only',
         addedAt: Date.now()
       };
 
@@ -94,12 +96,26 @@ class MusicDB {
           duration: s.duration,
           hasLyrics: !!s.lyricsContent,
           hasCover: !!s.coverBlob,
+          hasAudio: !!s.audioBlob,
+          cloudId: s.cloudId || null,
+          syncStatus: s.syncStatus || 'local-only',
           addedAt: s.addedAt
         }));
         resolve(songs);
       };
       request.onerror = () => reject(request.error);
     });
+  }
+
+  async findByCloudId(cloudId) {
+    const allSongs = await new Promise((resolve, reject) => {
+      const tx = this.db.transaction('songs', 'readonly');
+      const store = tx.objectStore('songs');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    return allSongs.find(s => s.cloudId === cloudId) || null;
   }
 
   async getSongAudioURL(id) {
@@ -329,7 +345,7 @@ class MusicImporter {
           lyricsContent = await lyricsMap.get(baseName).text();
         }
 
-        await this.db.addSong({
+        const songData = {
           title,
           artist,
           filename: file.name,
@@ -339,16 +355,22 @@ class MusicImporter {
           lyricsContent,
           coverBlob: null,
           coverType: null
-        });
+        };
+        
+        const id = await this.db.addSong(songData);
+        songData.id = id;
 
         results.success++;
+        
+        if (progressCallback) {
+          await progressCallback(i + 1, audioFiles.length, file.name, songData);
+        }
       } catch (err) {
         console.error(`Failed to import ${file.name}:`, err);
         results.failed++;
-      }
-
-      if (progressCallback) {
-        progressCallback(i + 1, audioFiles.length, file.name);
+        if (progressCallback) {
+          await progressCallback(i + 1, audioFiles.length, file.name, null);
+        }
       }
     }
 

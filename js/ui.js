@@ -158,12 +158,20 @@ class UIController {
               <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM21 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
             </svg>
           </div>
+          ${song.syncStatus === 'downloading' ? `
+          <div class="song-download-overlay">
+            <div class="spinner"></div>
+          </div>
+          ` : ''}
           <div class="song-playing-indicator">
             <span></span><span></span><span></span>
           </div>
         </div>
         <div class="song-info">
-          <div class="song-title">${this._escapeHtml(song.title)}</div>
+          <div class="song-title" style="display:flex; align-items:center; overflow:hidden;">
+            ${this._getCloudBadgeHtml(song.syncStatus)}
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this._escapeHtml(song.title)}</span>
+          </div>
           <div class="song-artist">${this._escapeHtml(song.artist)}</div>
         </div>
         <span class="song-duration">${this._formatDuration(song.duration)}</span>
@@ -197,6 +205,45 @@ class UIController {
         if (onMore) onMore(id, title);
       });
     });
+  }
+
+  _getCloudBadgeHtml(status) {
+    if (!status || status === 'local-only') return '';
+    
+    if (status === 'cloud-only') {
+      return `
+        <div class="song-cloud-badge cloud-only" title="Chưa tải về">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
+            <path d="M12 12v6m0 0l-3-3m3 3l3-3"/>
+          </svg>
+        </div>
+      `;
+    }
+    
+    if (status === 'synced') {
+      return `
+        <div class="song-cloud-badge synced" title="Đã đồng bộ">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
+            <path d="M9 16l2 2 4-4"/>
+          </svg>
+        </div>
+      `;
+    }
+
+    if (status === 'downloading') {
+      return `
+        <div class="song-cloud-badge downloading" title="Đang tải...">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
+            <path d="M12 12v6m0 0l-3-3m3 3l3-3"/>
+          </svg>
+        </div>
+      `;
+    }
+
+    return '';
   }
 
   // --- Update Player UI ---

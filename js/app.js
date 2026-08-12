@@ -13,6 +13,9 @@ class HVLApp {
     this.lyricsDisplay = null;
     this.allSongs = [];
     this.currentPlaylistView = null; // null = all songs, id = specific playlist
+    
+    // Cloud sync
+    this.cloud = new CloudSync();
   }
 
   async init() {
@@ -21,6 +24,12 @@ class HVLApp {
       await this.db.init();
       this.importer = new MusicImporter(this.db);
       this.playlistManager = new PlaylistManager(this.db);
+
+      // Initialize cloud sync
+      const cloudReady = this.cloud.init();
+      if (cloudReady) {
+        this._bindCloudEvents();
+      }
 
       // Initialize UI
       this.ui.init();
@@ -364,10 +373,38 @@ class HVLApp {
 
     if (progressSection) progressSection.classList.remove('hidden');
 
-    const results = await this.importer.importFiles(files, (current, total, name) => {
+    const results = await this.importer.importFiles(files, async (current, total, name, songData) => {
       const percent = (current / total) * 100;
       if (progressBar) progressBar.style.width = `${percent}%`;
       if (progressText) progressText.textContent = `Đang import ${current}/${total}: ${name}`;
+      
+      // Upload to cloud if initialized and we have song data
+      if (this.cloud.initialized && songData) {
+        try {
+          if (progressText) progressText.textContent = `Đang upload lên cloud: ${name}`;
+          const cloudId = await this.cloud.uploadSong(
+            songData.audioBlob,
+            songData.audioType,
+            songData.filename,
+            { title: songData.title, artist: songData.artist, duration: songData.duration },
+            songData.lyricsContent
+          );
+          
+          if (cloudId) {
+            // Update db with cloudId and syncStatus
+            const song = await this.db.getSong(songData.id);
+            if (song) {
+              song.cloudId = cloudId;
+              song.syncStatus = 'synced';
+              
+              const tx = this.db.db.transaction('songs', 'readwrite');
+              tx.objectStore('songs').put(song);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to upload imported song:', err);
+        }
+      }
     });
 
     if (progressText) {
@@ -516,7 +553,7 @@ class HVLApp {
     // Load all songs as queue
     const songIds = this.allSongs.map(s => s.id);
     this.player.loadQueue(songIds, songIds.indexOf(songId));
-    await this.player.playSong(songId, this.db);
+    await this._playOrDownloadSong(songId);
   }
 
   // --- Song Filtering ---
@@ -593,7 +630,7 @@ class HVLApp {
       async (songId) => {
         const songIds = songs.map(s => s.id);
         this.player.loadQueue(songIds, songIds.indexOf(songId));
-        await this.player.playSong(songId, this.db);
+        await this._playOrDownloadSong(songId);
       },
       (songId, title) => this.ui.openContextMenu(songId, title)
     );
@@ -616,7 +653,7 @@ class HVLApp {
     if (songs && songs.length > 0) {
       const songIds = songs.map(s => s.id);
       this.player.loadQueue(songIds, 0);
-      await this.player.playSong(songIds[0], this.db);
+      await this._playOrDownloadSong(songIds[0]);
     }
   }
 
@@ -691,6 +728,170 @@ class HVLApp {
       navigator.serviceWorker.register('./sw.js')
         .then(reg => console.log('Service Worker registered:', reg.scope))
         .catch(err => console.warn('Service Worker registration failed:', err));
+    }
+  }
+
+  // --- Cloud Sync ---
+
+  _bindCloudEvents() {
+    const syncBtn = document.getElementById('syncBtn');
+    if (!syncBtn) return;
+
+    // Change icon to cloud-active
+    syncBtn.classList.add('cloud-active');
+
+    syncBtn.addEventListener('click', () => {
+      this._syncWithCloud();
+    });
+
+    this.cloud.on('downloadprogress', (data) => {
+      // Find DOM element and update UI if playing/downloading
+      // The UI currently handles downloading state via re-render, 
+      // but we could optimize by updating a specific progress bar
+    });
+  }
+
+  async _syncWithCloud() {
+    if (!this.cloud.initialized) {
+      this.ui.showToast('Chưa cấu hình Firebase', 'error');
+      return;
+    }
+
+    const syncBtn = document.getElementById('syncBtn');
+    if (this.cloud.syncing) return;
+    this.cloud.syncing = true;
+    syncBtn?.classList.add('syncing');
+    
+    this._showSyncStatus('Đang đồng bộ nhạc từ cloud...');
+
+    try {
+      const cloudSongs = await this.cloud.getCloudSongs();
+      let added = 0;
+
+      for (const cs of cloudSongs) {
+        // Check if we already have it
+        const localSong = await this.db.findByCloudId(cs.cloudId);
+        if (!localSong) {
+          // Add as cloud-only
+          await this.db.addSong({
+            title: cs.title,
+            artist: cs.artist,
+            filename: cs.filename,
+            duration: cs.duration,
+            audioBlob: null,
+            audioType: cs.audioType,
+            lyricsContent: null,
+            cloudId: cs.cloudId,
+            syncStatus: 'cloud-only'
+          });
+          added++;
+        }
+      }
+
+      if (added > 0) {
+        await this.refreshLibrary();
+        this.ui.showToast(`Đã đồng bộ ${added} bài hát mới`, 'success');
+      } else {
+        this.ui.showToast('Đã đồng bộ, không có bài mới', 'info');
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+      this.ui.showToast('Đồng bộ thất bại', 'error');
+    } finally {
+      this.cloud.syncing = false;
+      syncBtn?.classList.remove('syncing');
+      this._hideSyncStatus();
+    }
+  }
+
+  async _playOrDownloadSong(songId) {
+    const song = await this.db.getSong(songId);
+    if (!song) return;
+
+    if (song.audioBlob) {
+      // Local or already downloaded
+      await this.player.playSong(songId, this.db);
+    } else if (song.cloudId) {
+      // Need to download first
+      await this._downloadAndPlay(song);
+    } else {
+      this.ui.showToast('Không tìm thấy file audio', 'error');
+    }
+  }
+
+  async _downloadAndPlay(song) {
+    // 1. Update UI to downloading state
+    song.syncStatus = 'downloading';
+    await this.db.updateSong(song.id, { syncStatus: 'downloading' });
+    await this.refreshLibrary(); // re-render to show downloading icon
+
+    this._showSyncStatus(`Đang tải bài hát: ${song.title}...`);
+
+    try {
+      // 2. Download audio
+      const audioResult = await this.cloud.downloadAudio(song.cloudId);
+      if (!audioResult) throw new Error('Download failed');
+
+      // 3. Download lyrics if exists
+      let lyrics = null;
+      if (song.hasLyrics) { // assuming cloud metadata says it has lyrics
+        lyrics = await this.cloud.downloadLyrics(song.cloudId);
+      }
+
+      // 4. Save to local DB
+      await this.db.updateSong(song.id, {
+        audioBlob: audioResult.audioBuffer,
+        audioType: audioResult.audioType,
+        lyricsContent: lyrics,
+        syncStatus: 'synced'
+      });
+
+      // 5. Play
+      this._hideSyncStatus();
+      await this.refreshLibrary();
+      await this.player.playSong(song.id, this.db);
+
+    } catch (err) {
+      console.error('Download error:', err);
+      this.ui.showToast('Lỗi khi tải bài hát', 'error');
+      
+      // Reset status
+      await this.db.updateSong(song.id, { syncStatus: 'cloud-only' });
+      this._hideSyncStatus();
+      await this.refreshLibrary();
+    }
+  }
+
+  _showSyncStatus(message) {
+    let bar = document.getElementById('syncStatusBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'syncStatusBar';
+      bar.className = 'sync-status-bar';
+      bar.innerHTML = `
+        <div class="spinner"></div>
+        <div class="sync-text"></div>
+        <button class="sync-close" aria-label="Đóng">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      `;
+      document.body.appendChild(bar);
+      bar.querySelector('.sync-close').addEventListener('click', () => {
+        bar.classList.remove('visible');
+      });
+    }
+    bar.querySelector('.sync-text').textContent = message;
+    // Force reflow
+    void bar.offsetWidth;
+    bar.classList.add('visible');
+  }
+
+  _hideSyncStatus() {
+    const bar = document.getElementById('syncStatusBar');
+    if (bar) {
+      bar.classList.remove('visible');
     }
   }
 }
